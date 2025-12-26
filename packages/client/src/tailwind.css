@@ -1,0 +1,72 @@
+@import url("https://fonts.googleapis.com/css2?family=Luckiest+Guy&display=swap");
+@import "tailwindcss";
+@import "tailwindcss-animated";
+@import "./custom.css";
+
+body {
+	@apply m-0 bg-background-secondary;
+	font-family:
+		-apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu",
+		"Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+}
+
+/* @tailwind theme */
+@theme {
+	--color-background-primary: #faf3d7;
+	--color-background-secondary: #f0e0af;
+	--color-primary: #ebd47e;
+	--color-front: #000000;
+	--color-back: #ffffff;
+	--color-card: #facb45;
+	--color-accent: #5c8257;
+
+	--font-luckiest-guy: "Luckiest Guy", sans-serif;
+}
+
+code {
+	font-family:
+		source-code-pro, Menlo, Monaco, Consolas, "Courier New", monospace;
+}
+
+@utility z-1 {
+	@apply z-[1];
+}
+
+@utility rounded-inherit {
+	border-radius: inherit;
+}
+
+@utility drop-outline {
+	text-shadow:
+		2px 2px 0 var(--tw-shadow-color, rgb(0 0 0 / 1)),
+		-2px 2px 0 var(--tw-shadow-color, rgb(0 0 0 / 1)),
+		2px -2px 0 var(--tw-shadow-color, rgb(0 0 0 / 1)),
+		-2px -2px 0 var(--tw-shadow-color, rgb(0 0 0 / 1));
+}
+@utility drop-outline-md {
+	text-shadow:
+		3px 3px 0 var(--tw-shadow-color, rgb(0 0 0 / 1)),
+		-3px 3px 0 var(--tw-shadow-color, rgb(0 0 0 / 1)),
+		3px -3px 0 var(--tw-shadow-color, rgb(0 0 0 / 1)),
+		-3px -3px 0 var(--tw-shadow-color, rgb(0 0 0 / 1));
+}
+
+@utility pulse-shadow {
+	animation: pulse-shadow-anim 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse-shadow-anim {
+	0% {
+		--tw-shadow: 0 10px var(--tw-shadow-color, rgb(0 0 0 / 0.05));
+	}
+
+	70% {
+		--tw-shadow: 0 3px var(--tw-shadow-color, rgb(0 0 0 / 0.05));
+	}
+
+	100% {
+		--tw-shadow: 0 10px var(--tw-shadow-color, rgb(0 0 0 / 0.05));
+	}
+}
