@@ -1,5 +1,5 @@
 {
-  "name": "@farmfi/client",
+  "name": "@revora/client",
   "private": true,
   "type": "module",
   "scripts": {
