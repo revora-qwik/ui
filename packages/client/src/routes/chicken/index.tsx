@@ -4,6 +4,7 @@ import Footer from "./components/Footer";
 import Hero from "./components/Hero";
 import HowItWorks from "./components/HowItWorks";
 import UpcomingProjects from "./components/UpcomingProjects";
+import InvestmentCalculator from "./components/InvestmentCalculator";
 
 export const Route = createFileRoute("/chicken/")({
 	component: RouteComponent,
@@ -14,6 +15,7 @@ function RouteComponent() {
 		<div>
 			<Hero />
 			<HowItWorks />
+			<InvestmentCalculator />
 			<UpcomingProjects />
 			<CompanyToken />
 			<Footer />

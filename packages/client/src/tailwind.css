@@ -70,3 +70,62 @@ code {
 		--tw-shadow: 0 10px var(--tw-shadow-color, rgb(0 0 0 / 0.05));
 	}
 }
+
+
+@keyframes chicken-walk {
+  0%   { transform: translateX(0) scaleX(1); }
+  49%  { transform: translateX(120px) scaleX(1); }
+  50%  { transform: translateX(120px) scaleX(-1); }
+  99%  { transform: translateX(0) scaleX(-1); }
+  100% { transform: translateX(0) scaleX(1); }
+}
+
+@keyframes chicken-bob {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-6px); }
+}
+
+@keyframes chicken-idle {
+  0%, 100% { transform: rotate(0deg); }
+  50%      { transform: rotate(2deg); }
+}
+
+.animate-chicken-walk {
+  animation: chicken-walk 18s linear infinite;
+}
+
+.animate-chicken-bob {
+  animation: chicken-bob 2.5s ease-in-out infinite;
+}
+
+.animate-chicken-idle {
+  animation: chicken-idle 3.5s ease-in-out infinite;
+}
+
+
+@keyframes chicken-breathe {
+  0%, 100% { transform: scale(1) translateY(0); }
+  50% { transform: scale(1.02) translateY(-2px); }
+}
+
+@keyframes chicken-head-tilt {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(2deg); }
+}
+
+@keyframes chicken-blink {
+  0%, 95%, 100% { transform: scaleY(1); }
+  96% { transform: scaleY(0.1); }
+}
+
+.animate-chicken-breathe {
+  animation: chicken-breathe 3.5s ease-in-out infinite;
+}
+
+.animate-chicken-tilt {
+  animation: chicken-head-tilt 4s ease-in-out infinite;
+}
+
+.animate-chicken-blink {
+  animation: chicken-blink 6s infinite;
+}
