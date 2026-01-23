@@ -39,7 +39,19 @@ contract TrancheFactory is Ownable {
         uint256 pricePerToken
     );
 
-    event TrancheDeactivated(address indexed trancheToken);
+    event TrancheDeactivated(
+        address indexed trancheToken,
+        address indexed deactivatedBy
+    );
+    event TrancheReactivated(
+        address indexed trancheToken,
+        address indexed reactivatedBy
+    );
+    event TrancheOwnershipTransferred(
+        address indexed trancheToken,
+        address indexed oldOwner,
+        address indexed newOwner
+    );
 
     constructor(
         address _revenueDistributor,
@@ -158,7 +170,7 @@ contract TrancheFactory is Ownable {
         TrancheToken(trancheToken).pauseFunding();
         trancheInfo[trancheToken].isActive = false;
 
-        emit TrancheDeactivated(trancheToken);
+        emit TrancheDeactivated(trancheToken, msg.sender);
     }
 
     /**
@@ -171,6 +183,8 @@ contract TrancheFactory is Ownable {
 
         TrancheToken(trancheToken).activateFunding();
         trancheInfo[trancheToken].isActive = true;
+
+        emit TrancheReactivated(trancheToken, msg.sender);
     }
 
     /**
@@ -185,7 +199,10 @@ contract TrancheFactory is Ownable {
         require(isTranche[trancheToken], "Not a valid tranche");
         require(newOwner != address(0), "Invalid new owner");
 
+        address oldOwner = TrancheToken(trancheToken).owner();
         TrancheToken(trancheToken).transferOwnership(newOwner);
+
+        emit TrancheOwnershipTransferred(trancheToken, oldOwner, newOwner);
     }
 
     /**

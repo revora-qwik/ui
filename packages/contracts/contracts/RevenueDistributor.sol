@@ -3,6 +3,7 @@ pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
@@ -13,9 +14,12 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
  *      If no Revora token is set, Revora share goes to treasury address
  */
 contract RevenueDistributor is Ownable, ReentrancyGuard {
+    using SafeERC20 for IERC20;
+
     struct Distribution {
         address trancheToken;
         address paymentToken;
+        address revoraTokenSnapshot; // Snapshot of Revora token at creation
         uint256 totalAmount;
         uint256 trancheAmount;
         uint256 revoraAmount;
@@ -25,6 +29,7 @@ contract RevenueDistributor is Ownable, ReentrancyGuard {
         uint256 trancheTotalSupply;
         uint256 revoraTotalSupply;
         uint256 totalClaimed;
+        uint256 heldAmount; // Amount actually held by contract for claims
     }
 
     struct TrancheConfig {
@@ -70,13 +75,15 @@ contract RevenueDistributor is Ownable, ReentrancyGuard {
     event Claimed(
         uint256 indexed distributionId,
         address indexed user,
-        uint256 amount
+        uint256 trancheAmount,
+        uint256 revoraAmount,
+        uint256 totalAmount
     );
 
     event UnclaimedFundsWithdrawn(
         uint256 indexed distributionId,
         uint256 amount,
-        address recipient
+        address indexed recipient
     );
 
     event TrancheConfigured(
@@ -89,8 +96,14 @@ contract RevenueDistributor is Ownable, ReentrancyGuard {
         uint32 claimPeriodDays
     );
 
-    event RevoraTokenSet(address indexed revoraToken);
-    event RevoraTreasurySet(address indexed treasury);
+    event RevoraTokenSet(
+        address indexed oldToken,
+        address indexed newToken
+    );
+    event RevoraTreasurySet(
+        address indexed oldTreasury,
+        address indexed newTreasury
+    );
     event ConfigurerAuthorized(address indexed configurer);
     event ConfigurerRevoked(address indexed configurer);
 
@@ -108,8 +121,9 @@ contract RevenueDistributor is Ownable, ReentrancyGuard {
      */
     function setRevoraToken(address _revoraToken) external onlyOwner {
         require(_revoraToken != address(0), "Invalid token address");
+        address oldToken = address(revoraToken);
         revoraToken = ERC20Votes(_revoraToken);
-        emit RevoraTokenSet(_revoraToken);
+        emit RevoraTokenSet(oldToken, _revoraToken);
     }
 
     /**
@@ -118,8 +132,9 @@ contract RevenueDistributor is Ownable, ReentrancyGuard {
      */
     function setRevoraTreasury(address _treasury) external onlyOwner {
         require(_treasury != address(0), "Invalid treasury address");
+        address oldTreasury = revoraTreasury;
         revoraTreasury = _treasury;
-        emit RevoraTreasurySet(_treasury);
+        emit RevoraTreasurySet(oldTreasury, _treasury);
     }
 
     /**
@@ -209,6 +224,8 @@ contract RevenueDistributor is Ownable, ReentrancyGuard {
         require(trancheToken != address(0), "Invalid tranche");
         require(paymentToken != address(0), "Invalid payment token");
         require(totalAmount > 0, "Amount must be > 0");
+        require(investmentStartBlock > 0, "Invalid investment start block");
+        require(investmentStartBlock <= block.number, "Start block cannot be in future");
 
         TrancheConfig memory config = trancheConfigs[trancheToken];
         require(config.isConfigured, "Tranche not configured");
@@ -259,21 +276,17 @@ contract RevenueDistributor is Ownable, ReentrancyGuard {
         );
 
         // Transfer payment tokens from sender
-        require(
-            IERC20(paymentToken).transferFrom(
-                msg.sender,
-                address(this),
-                totalAmount
-            ),
-            "Transfer failed"
+        IERC20(paymentToken).safeTransferFrom(
+            msg.sender,
+            address(this),
+            totalAmount
         );
 
         // If no Revora token, send Revora share to treasury immediately
+        uint256 heldAmount = totalAmount; // By default, hold full amount
         if (address(revoraToken) == address(0) && revoraAmount > 0) {
-            require(
-                IERC20(paymentToken).transfer(revoraTreasury, revoraAmount),
-                "Treasury transfer failed"
-            );
+            IERC20(paymentToken).safeTransfer(revoraTreasury, revoraAmount);
+            heldAmount = trancheAmount; // Only hold tranche amount for claims
         }
 
         // Create distribution record
@@ -281,6 +294,7 @@ contract RevenueDistributor is Ownable, ReentrancyGuard {
         distributions[distributionId] = Distribution({
             trancheToken: trancheToken,
             paymentToken: paymentToken,
+            revoraTokenSnapshot: address(revoraToken), // Snapshot current Revora token
             totalAmount: totalAmount,
             trancheAmount: trancheAmount,
             revoraAmount: revoraAmount,
@@ -289,7 +303,8 @@ contract RevenueDistributor is Ownable, ReentrancyGuard {
             claimDeadline: claimDeadline,
             trancheTotalSupply: trancheTotalSupply,
             revoraTotalSupply: revoraTotalSupply,
-            totalClaimed: 0
+            totalClaimed: 0,
+            heldAmount: heldAmount
         });
 
         emit DistributionCreated(
@@ -310,14 +325,17 @@ contract RevenueDistributor is Ownable, ReentrancyGuard {
      * @notice Internal function to calculate claimable amount for a user
      * @param distributionId ID of the distribution
      * @param user Address of the user
-     * @return claimable Amount the user can claim
+     * @return trancheAmount Amount from tranche share
+     * @return revoraAmount Amount from revora share
+     * @return totalAmount Total claimable amount
      */
     function _calculateClaimable(
         uint256 distributionId,
         address user
-    ) internal view returns (uint256) {
+    ) internal view returns (uint256 trancheAmount, uint256 revoraAmount, uint256 totalAmount) {
         Distribution memory dist = distributions[distributionId];
-        uint256 totalClaimable = 0;
+        trancheAmount = 0;
+        revoraAmount = 0;
 
         // Tranche token share
         if (dist.trancheAmount > 0 && dist.trancheTotalSupply > 0) {
@@ -328,31 +346,31 @@ contract RevenueDistributor is Ownable, ReentrancyGuard {
             );
 
             if (userTrancheBalance > 0) {
-                uint256 trancheShare = (dist.trancheAmount *
+                trancheAmount = (dist.trancheAmount *
                     userTrancheBalance) / dist.trancheTotalSupply;
-                totalClaimable += trancheShare;
             }
         }
 
-        // Revora token share (only if token exists)
+        // Revora token share (only if token exists at snapshot)
         if (
-            address(revoraToken) != address(0) &&
+            dist.revoraTokenSnapshot != address(0) &&
             dist.revoraAmount > 0 &&
             dist.revoraTotalSupply > 0
         ) {
-            uint256 userRevoraBalance = revoraToken.getPastVotes(
+            ERC20Votes revoraTokenSnap = ERC20Votes(dist.revoraTokenSnapshot);
+            uint256 userRevoraBalance = revoraTokenSnap.getPastVotes(
                 user,
                 dist.snapshotBlock
             );
 
             if (userRevoraBalance > 0) {
-                uint256 revoraShare = (dist.revoraAmount * userRevoraBalance) /
+                revoraAmount = (dist.revoraAmount * userRevoraBalance) /
                     dist.revoraTotalSupply;
-                totalClaimable += revoraShare;
             }
         }
 
-        return totalClaimable;
+        totalAmount = trancheAmount + revoraAmount;
+        return (trancheAmount, revoraAmount, totalAmount);
     }
 
     /**
@@ -367,23 +385,20 @@ contract RevenueDistributor is Ownable, ReentrancyGuard {
             "Claim period ended"
         );
 
-        uint256 claimable = _calculateClaimable(distributionId, msg.sender);
-        require(claimable > 0, "Nothing to claim");
+        (uint256 trancheAmount, uint256 revoraAmount, uint256 totalAmount) = _calculateClaimable(distributionId, msg.sender);
+        require(totalAmount > 0, "Nothing to claim");
 
         // Mark as claimed
         hasClaimed[distributionId][msg.sender] = true;
-        distributions[distributionId].totalClaimed += claimable;
+        distributions[distributionId].totalClaimed += totalAmount;
 
         // Transfer tokens
-        require(
-            IERC20(distributions[distributionId].paymentToken).transfer(
-                msg.sender,
-                claimable
-            ),
-            "Claim transfer failed"
+        IERC20(distributions[distributionId].paymentToken).safeTransfer(
+            msg.sender,
+            totalAmount
         );
 
-        emit Claimed(distributionId, msg.sender, claimable);
+        emit Claimed(distributionId, msg.sender, trancheAmount, revoraAmount, totalAmount);
     }
 
     /**
@@ -401,7 +416,8 @@ contract RevenueDistributor is Ownable, ReentrancyGuard {
         if (block.timestamp > distributions[distributionId].claimDeadline)
             return 0;
 
-        return _calculateClaimable(distributionId, user);
+        (, , uint256 totalAmount) = _calculateClaimable(distributionId, user);
+        return totalAmount;
     }
 
     /**
@@ -415,17 +431,14 @@ contract RevenueDistributor is Ownable, ReentrancyGuard {
         Distribution memory dist = distributions[distributionId];
         require(block.timestamp > dist.claimDeadline, "Claim period not ended");
 
-        uint256 unclaimed = dist.totalAmount - dist.totalClaimed;
+        uint256 unclaimed = dist.heldAmount - dist.totalClaimed;
         require(unclaimed > 0, "No unclaimed funds");
 
         // Update distribution
-        distributions[distributionId].totalClaimed = dist.totalAmount;
+        distributions[distributionId].totalClaimed = dist.heldAmount;
 
         // Transfer unclaimed funds to treasury
-        require(
-            IERC20(dist.paymentToken).transfer(revoraTreasury, unclaimed),
-            "Withdraw failed"
-        );
+        IERC20(dist.paymentToken).safeTransfer(revoraTreasury, unclaimed);
 
         emit UnclaimedFundsWithdrawn(distributionId, unclaimed, revoraTreasury);
     }

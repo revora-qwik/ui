@@ -1,8 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { network } from "hardhat";
-import { parseUnits, formatUnits } from "viem";
-import * as helpers from "@nomicfoundation/hardhat-network-helpers";
+import { parseUnits } from "viem";
 
 describe("RevenueDistributor", async function () {
   const { viem } = await network.connect();
@@ -120,11 +119,11 @@ describe("RevenueDistributor", async function () {
     });
 
     const dist = await distributor.read.distributions([0n]);
-    assert.equal(dist[2], revenueAmount); // totalAmount
+    assert.equal(dist[3], revenueAmount); // totalAmount (index shifted by new revoraTokenSnapshot field)
 
     // Check that Revora share (10%) was sent to treasury
     // We need to check the change, not absolute balance
-    const revoraShareFromDist = dist[4]; // revoraAmount
+    const revoraShareFromDist = dist[5]; // revoraAmount (index shifted)
     assert.equal(revoraShareFromDist, parseUnits("1000", 6)); // 10% of 10k
   });
 
@@ -243,7 +242,7 @@ describe("RevenueDistributor", async function () {
     });
 
     const dist = await distributor.read.distributions([0n]);
-    const revoraAmount = dist[4]; // revoraAmount
+    const revoraAmount = dist[5]; // revoraAmount (index shifted by new revoraTokenSnapshot field)
 
     // Should be 15% of 10k = 1.5k (10% base + 5% performance bonus)
     assert.equal(revoraAmount, parseUnits("1500", 6));
