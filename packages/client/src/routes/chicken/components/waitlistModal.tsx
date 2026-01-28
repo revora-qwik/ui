@@ -26,7 +26,7 @@ export default function WaitlistModal({
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center">
+    <div className="fixed inset-0 z-100 flex items-center justify-center">
       
       <div
         className="absolute inset-0 bg-black/50 backdrop-blur-sm"
@@ -34,7 +34,7 @@ export default function WaitlistModal({
       />
 
      
-      <div className="relative z-10 w-[90%] max-w-md bg-gradient-to-b from-[#7faeb9] to-[#5f8f9b] rounded-3xl border-4 border-front shadow-[0_12px_0_#2b4c55] px-6 sm:px-8 py-8 text-center animate-jump-in">
+      <div className="relative z-10 w-[90%] max-w-md bg-linear-to-b from-[#7faeb9] to-[#5f8f9b] rounded-3xl border-4 border-front shadow-[0_12px_0_#2b4c55] px-6 sm:px-8 py-8 text-center animate-jump-in">
 
         
         <img
@@ -49,7 +49,7 @@ export default function WaitlistModal({
               JOIN THE WAITLIST
             </h2>
 
-            <p className="mt-2 text-front font-semibold text-sm sm:text-base">
+            <p className="text-back uppercase font-semibold text-sm sm:text-base md:text-md lg:text-lg drop-outline tracking-wider">
               Be first to join future farms 🌾
             </p>
 
@@ -82,22 +82,22 @@ export default function WaitlistModal({
               {loading ? "ADDING..." : "🥚 JOIN WAITLIST"}
             </button>
 
-            <p className="mt-3 text-xs text-front font-semibold opacity-80">
+            <p className="text-back uppercase font-semibold text-sm sm:text-base md:text-md lg:text-lg drop-outline tracking-wider pt-4">
               No spam. Just farm alpha 🐔
             </p>
           </>
         ) : (
           <>
             
-            <h2 className="mt-12 font-luckiest-guy text-3xl text-back drop-outline">
+            <h2 className="text-back py-6 uppercase font-semibold text-sm sm:text-base md:text-md lg:text-lg drop-outline tracking-wider">
               🎉 YAAAY!
             </h2>
 
-            <p className="mt-3 text-front font-semibold text-base">
+            <p className="text-back pb-12 uppercase font-semibold text-sm sm:text-base md:text-md lg:text-lg drop-outline tracking-wider">
               You are officially on the Real-World REVSHARE waitlist 🐓
             </p>
 
-            <p className="mt-1 text-front font-semibold text-sm">
+            <p className="text-back  uppercase font-semibold text-sm sm:text-base md:text-md lg:text-lg drop-outline tracking-wider">
               Tell your friends and grow the farm together 🌱
             </p>
 
