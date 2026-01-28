@@ -56,7 +56,7 @@ const socialLinks = [
 		name: "x",
 		icon: "/images/icon-unpressed-x.png",
 		pressedIcon: "/images/icon-pressed-x.png",
-		href: "https://x.com",
+		href: "https://x.com/revoralabs",
 	},
 	{
 		name: "telegram",
