@@ -22,7 +22,9 @@
     "noUncheckedSideEffectImports": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@server": ["../server/index.ts"],
+  "@server/*": ["../server/*"]
     }
   }
 }

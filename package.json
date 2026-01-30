@@ -1,9 +1,9 @@
 {
     "name": "revora",
-    "workspaces": [
-        "packages/*"
-    ],
     "devDependencies": {
         "@biomejs/biome": "2.2.4"
-    }
+    },
+    "workspaces": [
+        "packages/*"
+    ]
 }
