@@ -86,10 +86,11 @@ export default function LeaderboardModal({
       <div className="relative z-10 w-[95%] max-w-2xl h-[80vh] bg-linear-to-b from-[#7faeb9] to-[#5f8f9b] rounded-3xl border-4 border-front shadow-[0_14px_0_#2b4c55] flex flex-col animate-jump-in">
         {/* HEADER */}
         <div className="py-6 text-center relative">
-          <h2 className="font-luckiest-guy text-4xl sm:text-5xl text-back drop-outline animate-pulse tracking-wide">
+          <h2 className="font-luckiest-guy text-4xl sm:text-5xl text-back drop-outline tracking-wide">
             🏆 TOP FARMERS
           </h2>
-          <p className="text-back/80 font-semibold text-sm mt-1">
+
+          <p className="text-back uppercase font-semibold text-sm sm:text-base md:text-md lg:text-lg drop-outline tracking-wider">
             Ranked by referral points
           </p>
           <div className="absolute bottom-0 left-6 right-6 h-[2px] bg-gradient-to-r from-transparent via-black/30 to-transparent" />
@@ -98,7 +99,8 @@ export default function LeaderboardModal({
         {/* BODY */}
         {loading ? (
           <div className="flex-1 flex items-center justify-center">
-            <p className="text-back text-lg">Loading...</p>
+
+            <p className="text-back uppercase font-semibold text-sm sm:text-base md:text-md lg:text-lg drop-outline tracking-wider">Loading...</p>
           </div>
         ) : (
           <div
@@ -149,9 +151,8 @@ export default function LeaderboardModal({
                         <img
                           src={egg}
                           alt="egg"
-                          className={`w-9 drop-shadow-lg ${
-                            i === 0 ? "animate-bounce" : ""
-                          }`}
+                          className={`w-9 drop-shadow-lg ${i === 0 ? "animate-bounce" : ""
+                            }`}
                         />
                       </div>
                     ) : (
@@ -175,7 +176,8 @@ export default function LeaderboardModal({
 
                     {/* NAME */}
                     <div className="min-w-0">
-                      <p className="font-black text-back text-lg truncate flex items-center gap-2">
+
+                      <p className="text-back uppercase font-semibold text-sm sm:text-base md:text-md lg:text-lg drop-outline tracking-wider">
                         {l.name}
                         {isMe && (
                           <span className="px-2 py-1 text-xs font-black bg-amber-300 text-back rounded-full border-2 border-front">
@@ -183,7 +185,8 @@ export default function LeaderboardModal({
                           </span>
                         )}
                       </p>
-                      <p className="text-xs font-semibold text-back/70">
+
+                      <p className="text-back uppercase font-semibold text-sm sm:text-base md:text-md lg:text-lg drop-outline tracking-wider">
                         Rank #{i + 1}
                       </p>
                     </div>
@@ -191,10 +194,10 @@ export default function LeaderboardModal({
 
                   {/* RIGHT */}
                   <div className="text-right shrink-0">
-                    <p className="font-black text-xl text-back">
+                    <p className="text-back uppercase font-semibold text-sm sm:text-base md:text-md lg:text-lg drop-outline tracking-wider">
                       {l.points}
                     </p>
-                    <p className="text-xs font-semibold text-back/70">
+                    <p className="text-back uppercase font-semibold text-sm sm:text-base md:text-md lg:text-lg drop-outline tracking-wider">
                       Points
                     </p>
                   </div>
