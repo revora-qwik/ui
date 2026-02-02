@@ -156,7 +156,7 @@ export default function WaitlistModal({
         ) : (
           <>
           <p className="text-back uppercase font-semibold text-sm drop-outline tracking-wider mb-8">
-              You’re already on the waitlist 🐓
+              You're already on the waitlist 🐓
             </p>
 
             <div className="space-y-4">
