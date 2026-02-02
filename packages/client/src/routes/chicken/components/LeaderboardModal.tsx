@@ -93,7 +93,7 @@ export default function LeaderboardModal({
           <p className="text-back uppercase font-semibold text-sm sm:text-base md:text-md lg:text-lg drop-outline tracking-wider">
             Ranked by referral points
           </p>
-          <div className="absolute bottom-0 left-6 right-6 h-[2px] bg-gradient-to-r from-transparent via-black/30 to-transparent" />
+          <div className="absolute bottom-0 left-6 right-6 h-[2px] bg-gradient-r from-transparent via-black/30 to-transparent" />
         </div>
 
         {/* BODY */}
@@ -215,7 +215,7 @@ export default function LeaderboardModal({
 
         {/* FOOTER */}
         <div className="py-5 text-center relative">
-          <div className="absolute top-0 left-6 right-6 h-[2px] bg-gradient-to-r from-transparent via-black/30 to-transparent" />
+          <div className="absolute top-0 left-6 right-6 h-[2px] bg-gradient-r from-transparent via-black/30 to-transparent" />
           <button
             onClick={onClose}
             className="bg-amber-300 text-back uppercase font-luckiest-guy text-lg px-12 py-3 rounded-full border-4 border-front drop-outline hover:bg-amber-400 hover:scale-110 active:translate-y-[2px] transition-all"
