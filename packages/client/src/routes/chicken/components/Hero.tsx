@@ -48,7 +48,7 @@ export default function Hero() {
             onClick={() => setLeaderboardOpen(true)}
             className="bg-amber-300 text-back uppercase font-luckiest-guy text-base sm:text-lg md:text-xl px-5 sm:px-6 py-2 rounded-full border-2 sm:border-3 md:border-4 border-front drop-outline hover:bg-amber-400 hover:scale-105 active:bg-amber-500 transition-all duration-200"
           >
-            🏆 LEADERBOARD
+            LEADERBOARD
           </button>
 
           <button className="p-4 sm:p-5 rounded-full hover:scale-110 hover:bg-white/10 transition-all duration-200">
