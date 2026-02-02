@@ -18,15 +18,19 @@ export default function WaitlistModal({
   const [myReferralCode, setMyReferralCode] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
-  // read referral from URL
+
+  const [emailVerified, setEmailVerified] = useState(false);
+  const [showOtpPopup, setShowOtpPopup] = useState(false);
+  const [otp, setOtp] = useState("");
+  const [otpLoading, setOtpLoading] = useState(false);
+  const [resendTimer, setResendTimer] = useState(30);
+
   const params = new URLSearchParams(window.location.search);
   const urlReferral = params.get("ref") ?? "";
-
-  // allow manual override
   const [manualReferralCode, setManualReferralCode] =
     useState<string>(urlReferral);
 
-  // ESC to close
+ 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
@@ -35,16 +39,26 @@ export default function WaitlistModal({
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
-  // ✅ CHECK LOCAL STORAGE WHEN MODAL OPENS
+  
   useEffect(() => {
     if (!open) return;
-
     const storedCode = localStorage.getItem(STORAGE_KEY);
     if (storedCode) {
       setMyReferralCode(storedCode);
       setSubmitted(true);
     }
   }, [open]);
+
+  
+  useEffect(() => {
+    if (!showOtpPopup || resendTimer === 0) return;
+
+    const timer = setInterval(() => {
+      setResendTimer((t) => t - 1);
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [showOtpPopup, resendTimer]);
 
   if (!open) return null;
 
@@ -54,17 +68,82 @@ export default function WaitlistModal({
     setTimeout(() => setCopied(false), 1500);
   };
 
-  const handleSubmit = async () => {
-    if (loading || submitted) return;
+  
+  const handleVerifyEmail = async () => {
+    if (!email || !email.includes("@")) {
+      alert("Enter a valid email");
+      return;
+    }
+  
+    try {
+      setLoading(true);
+  
+      const res = await fetch(`${SERVER_URL}/waitlist/email/send-otp`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+  
+      const data = await res.json();
+  
+      
+      if (data?.alreadyJoined) {
+        setMyReferralCode(data.referralCode);
+        setSubmitted(true);
+        localStorage.setItem(STORAGE_KEY, data.referralCode);
+        return;
+      }
+  
+      
+      if (!res.ok) {
+        throw new Error(data?.error || "Failed to send OTP");
+      }
+  
+      
+      setResendTimer(30);
+      setShowOtpPopup(true);
+  
+    } catch (err: any) {
+      alert(err.message || "Something went wrong");
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  
 
-    if (!name || !email || !email.includes("@")) {
-      alert("Please enter a valid name and email");
+  
+  const handleVerifyOtp = async () => {
+    if (otp.length !== 6) return;
+
+    try {
+      setOtpLoading(true);
+      await fetch(`${SERVER_URL}/waitlist/email/verify-otp`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, otp }),
+      });
+
+      setEmailVerified(true);
+      setShowOtpPopup(false);
+      setOtp("");
+    } catch {
+      alert("Invalid OTP");
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
+  
+  const handleJoinWaitlist = async () => {
+    if (loading || submitted || !emailVerified) return;
+    if (!name) {
+      alert("Enter your name");
       return;
     }
 
     try {
       setLoading(true);
-
       const res = await fetch(`${SERVER_URL}/waitlist`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -76,18 +155,12 @@ export default function WaitlistModal({
       });
 
       const data = await res.json();
-
       setMyReferralCode(data.referralCode);
       setSubmitted(true);
-
-      // ✅ SAVE LOCALLY (PREVENT RE-SUBMIT)
       localStorage.setItem(STORAGE_KEY, data.referralCode);
-
-      // clean URL so refresh doesn't reopen modal
       window.history.replaceState({}, "", "/chicken");
-    } catch (err) {
-      console.error(err);
-      alert("Something went wrong. Please try again.");
+    } catch {
+      alert("Something went wrong");
     } finally {
       setLoading(false);
     }
@@ -99,23 +172,15 @@ export default function WaitlistModal({
 
   return (
     <div className="fixed inset-0 z-100 flex items-center justify-center">
-      {/* BACKDROP */}
       <div
         className="absolute inset-0 bg-black/50 backdrop-blur-sm"
         onClick={onClose}
       />
 
-      {/* MODAL */}
-      <div className="relative z-10 w-[90%] max-w-md bg-linear-to-b from-[#7faeb9] to-[#5f8f9b] rounded-3xl border-4 border-front shadow-[0_12px_0_#2b4c55] px-6 sm:px-8 py-8 text-center animate-jump-in">
-        <img
-          src="/images/chicken-idle.png"
-          alt="Happy chicken"
-          className="absolute -top-20 left-1/2 -translate-x-1/2 w-28 sm:w-32 animate-chicken-bob hover:scale-105 transition"
-        />
-
+      <div className="relative z-10 w-[90%] max-w-md bg-linear-to-b from-[#7faeb9] to-[#5f8f9b] rounded-3xl border-4 border-front shadow-[0_12px_0_#2b4c55] px-6 py-8 text-center animate-jump-in">
         {!submitted ? (
           <>
-            <h2 className="mt-10 font-luckiest-guy text-2xl sm:text-3xl text-back drop-outline">
+            <h2 className="mt-6 font-luckiest-guy text-2xl text-back drop-outline">
               JOIN THE WAITLIST
             </h2>
 
@@ -123,93 +188,124 @@ export default function WaitlistModal({
               placeholder="Your name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="mt-5 w-full px-4 py-3 rounded-xl border-4 border-front outline-none focus:scale-[1.02] focus:border-amber-300 transition"
+              className="mt-5 w-full px-4 py-3 rounded-xl border-4 border-front"
             />
 
             <input
               type="email"
               placeholder="you@farmmail.com"
               value={email}
+              disabled={emailVerified}
               onChange={(e) => setEmail(e.target.value)}
-              className="mt-4 w-full px-4 py-3 rounded-xl border-4 border-front outline-none focus:scale-[1.02] focus:border-amber-300 transition"
+              className={`mt-4 w-full px-4 py-3 rounded-xl border-4 border-front ${
+                emailVerified ? "opacity-60 cursor-not-allowed" : ""
+              }`}
             />
 
             <input
               placeholder="Referral code (optional)"
               value={manualReferralCode}
               onChange={(e) => setManualReferralCode(e.target.value)}
-              className="mt-3 w-full px-4 py-3 rounded-xl border-4 border-front outline-none focus:scale-[1.02] focus:border-amber-300 transition"
+              className="mt-3 w-full px-4 py-3 rounded-xl border-4 border-front"
             />
 
-            <p className="text-back uppercase font-semibold text-sm drop-outline tracking-wider mt-1">
-              Earn rewards when friends join using your code
-            </p>
-
             <button
-              onClick={handleSubmit}
+              onClick={emailVerified ? handleJoinWaitlist : handleVerifyEmail}
               disabled={loading}
-              className="mt-4 w-full bg-amber-300 font-luckiest-guy text-back uppercase font-semibold text-sm sm:text-base md:text-md lg:text-lg drop-outline tracking-wider px-6 py-3 rounded-full border-4 border-front disabled:opacity-60 hover:scale-105 transition"
+              className="mt-4 w-full bg-amber-300 font-luckiest-guy text-back uppercase px-6 py-3 rounded-full border-4 border-front hover:scale-105 transition"
             >
-              {loading ? "🐔 HATCHING..." : "🥚 JOIN WAITLIST"}
+              {loading
+                ? "🐔 HATCHING..."
+                : emailVerified
+                ? "🥚 JOIN WAITLIST"
+                : "📧 VERIFY EMAIL"}
             </button>
           </>
         ) : (
           <>
-          <p className="text-back uppercase font-semibold text-sm drop-outline tracking-wider mb-8">
+            <p className="text-back uppercase font-semibold mb-6">
               You're already on the waitlist 🐓
             </p>
 
             <div className="space-y-4">
-              {/* REFERRAL CODE */}
               <div className="bg-white/20 rounded-xl px-4 py-3 border-2 border-front">
-                <p className="text-back uppercase font-semibold text-sm drop-outline tracking-wider mb-1">Your referral code</p>
-                <div className="flex items-center justify-between">
-                  <span className="font-luckiest-guy tracking-wider text-back uppercase font-semibold text-xl drop-outline">
+                <p className="text-back text-sm mb-1">Your referral code</p>
+                <div className="flex justify-between items-center">
+                  <span className="font-luckiest-guy text-xl">
                     {myReferralCode}
                   </span>
                   <button
                     onClick={() => copyToClipboard(myReferralCode!)}
-                    className="bg-amber-300 px-1 py-1 rounded-lg border-2 border-front text-sm font-bold hover:scale-105 transition"
+                    className="bg-amber-300 p-1 rounded-lg border-2 border-front"
                   >
-
-                  <Copy className="w-4 h-4" />
+                    <Copy className="w-4 h-4" />
                   </button>
                 </div>
               </div>
 
-              {/* REFERRAL LINK */}
               <div className="bg-white/20 rounded-xl px-4 py-3 border-2 border-front">
-              <p className="text-back uppercase font-semibold text-sm drop-outline tracking-wider mb-1">
-                  Share link with friends
-                </p>
-                <div className="flex items-center gap-2">
-                  <span className="flex-1 text-sm text-front font-semibold truncate bg-back/20 px-2 py-2 rounded-lg border border-front">
+                <p className="text-back text-sm mb-1">Share link</p>
+                <div className="flex gap-2">
+                  <span className="flex-1 truncate text-sm bg-back/20 px-2 py-2 rounded-lg border border-front">
                     {referralLink}
                   </span>
                   <button
                     onClick={() => copyToClipboard(referralLink)}
-                    className="bg-amber-300 px-1 py-1 rounded-lg border-2 border-front font-bold hover:scale-105 transition"
+                    className="bg-amber-300 p-1 rounded-lg border-2 border-front"
                   >
-                  <Copy className="w-4 h-4" />
+                    <Copy className="w-4 h-4" />
                   </button>
                 </div>
               </div>
 
-              {copied && (
-
-              <p className="text-back uppercase font-semibold text-sm drop-outline tracking-wider mb-1">
-                  ✅ Copied to clipboard
-                </p>
-              )}
+              {copied && <p>✅ Copied</p>}
             </div>
 
             <button
               onClick={onClose}
-              className="mt-6 bg-amber-300 text-back uppercase font-luckiest-guy text-lg px-8 py-3 rounded-full border-4 border-front hover:scale-110 transition  drop-outline"
+              className="mt-6 bg-amber-300 text-back font-luckiest-guy px-8 py-3 rounded-full border-4 border-front"
             >
               DONE
             </button>
           </>
+        )}
+
+        {showOtpPopup && (
+          <div className="absolute inset-0 z-20 bg-black/70 flex items-center justify-center">
+            <div className="bg-white rounded-xl p-6 w-80 text-center border-4 border-front">
+              <h3 className="font-luckiest-guy text-xl mb-4">
+                Enter OTP
+              </h3>
+
+              <input
+                value={otp}
+                onChange={(e) => setOtp(e.target.value)}
+                maxLength={6}
+                className="w-full text-center text-xl tracking-widest px-4 py-2 border-2 rounded-lg"
+              />
+
+              <button
+                onClick={handleVerifyOtp}
+                disabled={otpLoading}
+                className="mt-4 w-full bg-amber-300 border-2 border-front rounded-full py-2"
+              >
+                {otpLoading ? "Verifying..." : "Verify OTP"}
+              </button>
+
+              <div className="mt-3 text-sm">
+                {resendTimer > 0 ? (
+                  <span>Resend OTP in {resendTimer}s</span>
+                ) : (
+                  <button
+                    onClick={handleVerifyEmail}
+                    className="underline"
+                  >
+                    Resend OTP
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </div>
