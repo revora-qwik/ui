@@ -1,6 +1,7 @@
 import { serve } from "bun";
 import { joinWaitlist } from "./actions/joinWaitlist";
 import { getLeaderboard } from "./queries/leaderboard";
+import { sendWaitlistOtp, verifyWaitlistOtp } from "./actions/SendOtp";
 
 
 const ALLOWED_ORIGIN = process.env.CLIENT_URL ?? "";
@@ -40,6 +41,46 @@ serve({
         headers: corsHeaders,
       });
     }
+
+    
+    if (req.method === "POST" && url.pathname === "/waitlist/email/send-otp") {
+      const { email } = await req.json();
+      const result = await sendWaitlistOtp(email);
+    
+      
+      if (result?.alreadyJoined) {
+        return Response.json(
+          {
+            alreadyJoined: true,
+            referralCode: result.referralCode,
+            points: result.points,
+          },
+          { headers: corsHeaders }
+        );
+      }
+    
+      if (result?.error) {
+        return Response.json(
+          { error: result.error },
+          { status: 429, headers: corsHeaders }
+        );
+      }
+    
+      
+      return Response.json(
+        { message: "OTP sent" },
+        { headers: corsHeaders }
+      );
+    }
+    
+    
+   
+    if (req.method === "POST" && url.pathname === "/waitlist/email/verify-otp") {
+      const { email, otp } = await req.json();
+      const result = await verifyWaitlistOtp(email, otp);
+      return Response.json(result, { headers: corsHeaders });
+    }
+
 
     return new Response("Not found", {
       status: 404,

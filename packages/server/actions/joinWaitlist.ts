@@ -1,6 +1,7 @@
 import { db } from "../db";
 import { Waitlist } from "../models/Waitlist";
 import { makeReferralCode } from "../utils/referralCode";
+import { EmailOtp } from "../models/EmailOtp";
 
 export async function joinWaitlist({
   name,
@@ -18,6 +19,16 @@ export async function joinWaitlist({
 
   if (!cleanEmail || !cleanName) {
     throw new Error("Invalid input");
+  }
+
+ 
+  const verifiedOtp = await EmailOtp.findOne({
+    email: cleanEmail,
+    verified: true,
+  });
+
+  if (!verifiedOtp) {
+    throw new Error("Email not verified");
   }
 
   const existing = await Waitlist.findOne({ email: cleanEmail });
@@ -50,6 +61,9 @@ export async function joinWaitlist({
       );
     }
   }
+
+  
+  await EmailOtp.deleteMany({ email: cleanEmail });
 
   return {
     referralCode: myCode,
