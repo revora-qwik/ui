@@ -1,3 +1,4 @@
+import { Copy } from "lucide-react";
 import { useEffect, useState } from "react";
 
 const SERVER_URL = import.meta.env.VITE_SERVER_URL;
@@ -140,61 +141,63 @@ export default function WaitlistModal({
               className="mt-3 w-full px-4 py-3 rounded-xl border-4 border-front outline-none focus:scale-[1.02] focus:border-amber-300 transition"
             />
 
-            <p className="text-xs text-back/70 mt-1">
+            <p className="text-back uppercase font-semibold text-sm drop-outline tracking-wider mt-1">
               Earn rewards when friends join using your code
             </p>
 
             <button
               onClick={handleSubmit}
               disabled={loading}
-              className="mt-4 w-full bg-amber-300 text-back uppercase font-luckiest-guy text-lg px-6 py-3 rounded-full border-4 border-front disabled:opacity-60 hover:scale-105 transition"
+              className="mt-4 w-full bg-amber-300 font-luckiest-guy text-back uppercase font-semibold text-sm sm:text-base md:text-md lg:text-lg drop-outline tracking-wider px-6 py-3 rounded-full border-4 border-front disabled:opacity-60 hover:scale-105 transition"
             >
               {loading ? "🐔 HATCHING..." : "🥚 JOIN WAITLIST"}
             </button>
           </>
         ) : (
           <>
-            <p className="text-back pb-4 uppercase font-semibold">
+          <p className="text-back uppercase font-semibold text-sm drop-outline tracking-wider mb-8">
               You’re already on the waitlist 🐓
             </p>
 
             <div className="space-y-4">
               {/* REFERRAL CODE */}
               <div className="bg-white/20 rounded-xl px-4 py-3 border-2 border-front">
-                <p className="text-xs text-back/70 mb-1">Your referral code</p>
+                <p className="text-back uppercase font-semibold text-sm drop-outline tracking-wider mb-1">Your referral code</p>
                 <div className="flex items-center justify-between">
-                  <span className="font-luckiest-guy tracking-widest text-back">
+                  <span className="font-luckiest-guy tracking-wider text-back uppercase font-semibold text-xl drop-outline">
                     {myReferralCode}
                   </span>
                   <button
                     onClick={() => copyToClipboard(myReferralCode!)}
-                    className="bg-amber-300 px-3 py-1 rounded-lg border-2 border-front text-sm font-bold hover:scale-105 transition"
+                    className="bg-amber-300 px-1 py-1 rounded-lg border-2 border-front text-sm font-bold hover:scale-105 transition"
                   >
-                    Copy
+
+                  <Copy className="w-4 h-4" />
                   </button>
                 </div>
               </div>
 
               {/* REFERRAL LINK */}
               <div className="bg-white/20 rounded-xl px-4 py-3 border-2 border-front">
-                <p className="text-xs text-back/70 mb-1">
-                  Share this link with friends
+              <p className="text-back uppercase font-semibold text-sm drop-outline tracking-wider mb-1">
+                  Share link with friends
                 </p>
                 <div className="flex items-center gap-2">
-                  <span className="flex-1 text-xs text-back truncate bg-black/20 px-2 py-2 rounded-lg border border-front">
+                  <span className="flex-1 text-sm text-front font-semibold truncate bg-back/20 px-2 py-2 rounded-lg border border-front">
                     {referralLink}
                   </span>
                   <button
                     onClick={() => copyToClipboard(referralLink)}
-                    className="bg-amber-300 px-4 py-2 rounded-lg border-2 border-front font-bold hover:scale-105 transition"
+                    className="bg-amber-300 px-1 py-1 rounded-lg border-2 border-front font-bold hover:scale-105 transition"
                   >
-                    Copy
+                  <Copy className="w-4 h-4" />
                   </button>
                 </div>
               </div>
 
               {copied && (
-                <p className="text-xs text-back/80">
+
+              <p className="text-back uppercase font-semibold text-sm drop-outline tracking-wider mb-1">
                   ✅ Copied to clipboard
                 </p>
               )}
@@ -202,7 +205,7 @@ export default function WaitlistModal({
 
             <button
               onClick={onClose}
-              className="mt-6 bg-amber-300 text-back uppercase font-luckiest-guy text-lg px-8 py-3 rounded-full border-4 border-front hover:scale-110 transition"
+              className="mt-6 bg-amber-300 text-back uppercase font-luckiest-guy text-lg px-8 py-3 rounded-full border-4 border-front hover:scale-110 transition  drop-outline"
             >
               DONE
             </button>
