@@ -178,6 +178,11 @@ export default function WaitlistModal({
       />
 
       <div className="relative z-10 w-[90%] max-w-md bg-linear-to-b from-[#7faeb9] to-[#5f8f9b] rounded-3xl border-4 border-front shadow-[0_12px_0_#2b4c55] px-6 py-8 text-center animate-jump-in">
+        <img
+          src="/images/chicken-idle.png"
+          alt="Happy chicken"
+          className="absolute -top-20 left-1/2 -translate-x-1/2 w-28 sm:w-32 animate-chicken-bob hover:scale-105 transition"
+        />
         {!submitted ? (
           <>
             <h2 className="mt-6 font-luckiest-guy text-2xl text-back drop-outline">
@@ -188,7 +193,7 @@ export default function WaitlistModal({
               placeholder="Your name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="mt-5 w-full px-4 py-3 rounded-xl border-4 border-front"
+              className="mt-5 w-full px-4 py-3 rounded-xl border-4 border-front outline-none focus:scale-[1.02] focus:border-amber-300 transition"
             />
 
             <input
@@ -197,7 +202,7 @@ export default function WaitlistModal({
               value={email}
               disabled={emailVerified}
               onChange={(e) => setEmail(e.target.value)}
-              className={`mt-4 w-full px-4 py-3 rounded-xl border-4 border-front ${
+              className={`mt-4 w-full px-4 py-3 rounded-xl border-4 border-front outline-none focus:scale-[1.02] focus:border-amber-300 transition ${
                 emailVerified ? "opacity-60 cursor-not-allowed" : ""
               }`}
             />
@@ -206,13 +211,17 @@ export default function WaitlistModal({
               placeholder="Referral code (optional)"
               value={manualReferralCode}
               onChange={(e) => setManualReferralCode(e.target.value)}
-              className="mt-3 w-full px-4 py-3 rounded-xl border-4 border-front"
+              className="mt-3 w-full px-4 py-3 rounded-xl border-4 border-front outline-none focus:scale-[1.02] focus:border-amber-300 transition"
             />
+
+            <p className="text-back uppercase font-semibold text-sm drop-outline tracking-wider mt-1">
+              Earn rewards when friends join using your code
+            </p>
 
             <button
               onClick={emailVerified ? handleJoinWaitlist : handleVerifyEmail}
               disabled={loading}
-              className="mt-4 w-full bg-amber-300 font-luckiest-guy text-back uppercase px-6 py-3 rounded-full border-4 border-front hover:scale-105 transition"
+              className="mt-4 w-full bg-amber-300 font-luckiest-guy text-back uppercase font-semibold text-sm sm:text-base md:text-md lg:text-lg drop-outline tracking-wider px-6 py-3 rounded-full border-4 border-front disabled:opacity-60 hover:scale-105 transition"
             >
               {loading
                 ? "🐔 HATCHING..."
@@ -223,20 +232,20 @@ export default function WaitlistModal({
           </>
         ) : (
           <>
-            <p className="text-back uppercase font-semibold mb-6">
+            <p className="text-back uppercase font-semibold text-sm drop-outline tracking-wider mb-8">
               You're already on the waitlist 🐓
             </p>
 
             <div className="space-y-4">
               <div className="bg-white/20 rounded-xl px-4 py-3 border-2 border-front">
-                <p className="text-back text-sm mb-1">Your referral code</p>
+                <p className="text-back uppercase font-semibold text-sm drop-outline tracking-wider mb-1">Your referral code</p>
                 <div className="flex justify-between items-center">
-                  <span className="font-luckiest-guy text-xl">
+                   <span className="font-luckiest-guy tracking-wider text-back uppercase font-semibold text-xl drop-outline">
                     {myReferralCode}
                   </span>
                   <button
                     onClick={() => copyToClipboard(myReferralCode!)}
-                    className="bg-amber-300 p-1 rounded-lg border-2 border-front"
+                    className="bg-amber-300 px-1 py-1 rounded-lg border-2 border-front text-sm font-bold hover:scale-105 transition"
                   >
                     <Copy className="w-4 h-4" />
                   </button>
@@ -244,26 +253,30 @@ export default function WaitlistModal({
               </div>
 
               <div className="bg-white/20 rounded-xl px-4 py-3 border-2 border-front">
-                <p className="text-back text-sm mb-1">Share link</p>
-                <div className="flex gap-2">
-                  <span className="flex-1 truncate text-sm bg-back/20 px-2 py-2 rounded-lg border border-front">
+                <p className="text-back uppercase font-semibold text-sm drop-outline tracking-wider mb-1">
+                  Share link with friends
+                </p>
+                <div className="flex item-center gap-2">
+                  <span className="flex-1 text-sm text-front font-semibold truncate bg-back/20 px-2 py-2 rounded-lg border border-front">
                     {referralLink}
                   </span>
                   <button
                     onClick={() => copyToClipboard(referralLink)}
-                    className="bg-amber-300 p-1 rounded-lg border-2 border-front"
+                     className="bg-amber-300 px-1 py-1 rounded-lg border-2 border-front font-bold hover:scale-105 transition"
                   >
                     <Copy className="w-4 h-4" />
                   </button>
                 </div>
               </div>
 
-              {copied && <p>✅ Copied</p>}
+              {copied &&  <p className="text-back uppercase font-semibold text-sm drop-outline tracking-wider mb-1">
+                  ✅ Copied to clipboard
+                </p>}
             </div>
 
             <button
               onClick={onClose}
-              className="mt-6 bg-amber-300 text-back font-luckiest-guy px-8 py-3 rounded-full border-4 border-front"
+              className="mt-6 bg-amber-300 text-back uppercase font-luckiest-guy text-lg px-8 py-3 rounded-full border-4 border-front hover:scale-110 transition  drop-outline"
             >
               DONE
             </button>
@@ -271,35 +284,51 @@ export default function WaitlistModal({
         )}
 
         {showOtpPopup && (
-          <div className="absolute inset-0 z-20 bg-black/70 flex items-center justify-center">
-            <div className="bg-white rounded-xl p-6 w-80 text-center border-4 border-front">
-              <h3 className="font-luckiest-guy text-xl mb-4">
-                Enter OTP
+  <div className="absolute inset-0 z-20 bg-black/50 backdrop-blur-sm flex items-center justify-center">
+    <div className="relative w-[90%] max-w-sm
+      bg-linear-to-b from-[#7faeb9] to-[#5f8f9b]
+      rounded-3xl border-4 border-front
+      shadow-[0_12px_0_#2b4c55]
+      px-6 py-8 text-center animate-jump-in">
+
+             <h3 className="font-luckiest-guy text-2xl text-back drop-outline uppercase tracking-wider mb-4">
+                ENTER OTP
               </h3>
+
 
               <input
                 value={otp}
                 onChange={(e) => setOtp(e.target.value)}
                 maxLength={6}
-                className="w-full text-center text-xl tracking-widest px-4 py-2 border-2 rounded-lg"
+                className="w-full text-center text-xl tracking-widest px-4 py-3
+                  rounded-xl border-4 border-front outline-none
+                  focus:scale-[1.02] focus:border-amber-300 transition"
               />
+              
 
               <button
                 onClick={handleVerifyOtp}
                 disabled={otpLoading}
-                className="mt-4 w-full bg-amber-300 border-2 border-front rounded-full py-2"
+                className="mt-5 w-full bg-amber-300
+                  font-luckiest-guy text-back uppercase font-semibold
+                  text-sm sm:text-base drop-outline tracking-wider
+                  px-6 py-3 rounded-full border-4 border-front
+                  disabled:opacity-60 hover:scale-105 transition"
               >
+
                 {otpLoading ? "Verifying..." : "Verify OTP"}
               </button>
 
-              <div className="mt-3 text-sm">
+              <div className="mt-4 text-back uppercase font-semibold text-sm drop-outline tracking-wider">
+
                 {resendTimer > 0 ? (
                   <span>Resend OTP in {resendTimer}s</span>
                 ) : (
                   <button
-                    onClick={handleVerifyEmail}
-                    className="underline"
-                  >
+                     onClick={handleVerifyEmail}
+                     className="underline hover:text-amber-300 transition"
+                   >
+                   
                     Resend OTP
                   </button>
                 )}
