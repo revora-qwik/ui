@@ -7,6 +7,6 @@ export async function getLeaderboard() {
   return Waitlist.find({})
     .sort({ points: -1 })
     .limit(50)
-    .select("name points")
+    .select("name points referralCode")
     .lean();
 }

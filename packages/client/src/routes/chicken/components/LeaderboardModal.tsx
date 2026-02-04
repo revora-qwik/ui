@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 
 type Leader = {
   name: string;
@@ -8,7 +8,6 @@ type Leader = {
 
 const SERVER_URL = import.meta.env.VITE_SERVER_URL;
 const STORAGE_KEY = "revora_waitlist_referral";
-
 
 const rankStyle = (i: number) => {
   if (i === 0)
@@ -20,7 +19,6 @@ const rankStyle = (i: number) => {
   return "bg-white/20";
 };
 
-
 const eggByRank = (i: number) => {
   if (i === 0) return "/images/goldenEgg.png";
   if (i === 1) return "/images/silverEgg.png";
@@ -28,12 +26,10 @@ const eggByRank = (i: number) => {
   return null;
 };
 
-
 const rankBadgeColor = (i: number) => {
   if (i < 10) return "bg-[#4f7f88]/70";
   return "bg-slate-400/50";
 };
-
 
 const myGlow =
   "ring-4 ring-amber-300 shadow-[0_0_25px_rgba(251,191,36,0.9)]";
@@ -48,13 +44,19 @@ export default function LeaderboardModal({
   const [leaders, setLeaders] = useState<Leader[]>([]);
   const [loading, setLoading] = useState(false);
 
+  const rowRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const hasAutoScrolled = useRef(false);
+
   const myReferralCode =
     typeof window !== "undefined"
       ? localStorage.getItem(STORAGE_KEY)
       : null;
 
+  // Load leaderboard
   useEffect(() => {
     if (!open) return;
+
+    hasAutoScrolled.current = false;
 
     async function load() {
       try {
@@ -72,19 +74,52 @@ export default function LeaderboardModal({
     load();
   }, [open]);
 
+  // Auto-scroll ONCE after data + DOM ready
+  useEffect(() => {
+    if (
+      !open ||
+      loading ||
+      !myReferralCode ||
+      hasAutoScrolled.current
+    )
+      return;
+
+    const el = rowRefs.current[myReferralCode];
+    if (!el) return;
+
+    
+    const t = setTimeout(() => {
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      hasAutoScrolled.current = true;
+    }, 1000);
+
+    return () => clearTimeout(t);
+  }, [open, loading, leaders, myReferralCode]);
+
   if (!open) return null;
 
   return (
     <div className="fixed inset-0 z-100 flex items-center justify-center">
-      {/* BACKDROP */}
+      
       <div
         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
         onClick={onClose}
       />
 
-      {/* MODAL */}
-      <div className="relative z-10 w-[95%] max-w-2xl h-[80vh] bg-linear-to-b from-[#7faeb9] to-[#5f8f9b] rounded-3xl border-4 border-front shadow-[0_14px_0_#2b4c55] flex flex-col animate-jump-in">
-        {/* HEADER */}
+      
+      <div
+        className="
+          relative z-10
+          w-[95%] max-w-2xl h-[80vh]
+          bg-linear-to-b from-[#7faeb9] to-[#5f8f9b]
+          rounded-3xl border-4 border-front
+          shadow-[0_14px_0_#2b4c55]
+          flex flex-col
+          animate-jump-in
+          origin-center
+        "
+      >
+      
         <div className="py-6 text-center relative">
           <h2 className="font-luckiest-guy text-4xl sm:text-5xl text-back drop-outline tracking-wide">
             🏆 TOP FARMERS
@@ -93,14 +128,16 @@ export default function LeaderboardModal({
           <p className="text-back uppercase font-semibold text-sm sm:text-base md:text-md lg:text-lg drop-outline tracking-wider">
             Ranked by referral points
           </p>
+
           <div className="absolute bottom-0 left-6 right-6 h-[2px] bg-gradient-to-r from-transparent via-black/30 to-transparent" />
         </div>
 
-        {/* BODY */}
+        
         {loading ? (
           <div className="flex-1 flex items-center justify-center">
-
-            <p className="text-back uppercase font-semibold text-sm sm:text-base md:text-md lg:text-lg drop-outline tracking-wider">Loading...</p>
+            <p className="text-back uppercase font-semibold drop-outline">
+              Loading...
+            </p>
           </div>
         ) : (
           <div
@@ -134,6 +171,11 @@ export default function LeaderboardModal({
               return (
                 <div
                   key={i}
+                  ref={(el) => {
+                    if (l.referralCode) {
+                      rowRefs.current[l.referralCode] = el;
+                    }
+                  }}
                   className={`
                     flex items-center justify-between
                     rounded-2xl px-6 py-4
@@ -144,15 +186,16 @@ export default function LeaderboardModal({
                     ${isMe ? myGlow : ""}
                   `}
                 >
-                  {/* LEFT */}
+                  
                   <div className="flex items-center gap-4 min-w-0">
                     {egg ? (
                       <div className="w-12 h-12 flex items-center justify-center">
                         <img
                           src={egg}
                           alt="egg"
-                          className={`w-9 drop-shadow-lg ${i === 0 ? "animate-bounce" : ""
-                            }`}
+                          className={`w-9 drop-shadow-lg ${
+                            i === 0 ? "animate-bounce" : ""
+                          }`}
                         />
                       </div>
                     ) : (
@@ -174,25 +217,32 @@ export default function LeaderboardModal({
                       </div>
                     )}
 
-                    {/* NAME */}
                     <div className="min-w-0">
-
                       <p className="text-back uppercase font-semibold text-sm sm:text-base md:text-md lg:text-lg drop-outline tracking-wider">
                         {l.name}
                         {isMe && (
-                          <span className="px-2 py-1 text-xs font-black bg-amber-300 text-back rounded-full border-2 border-front">
+                          <span className="ml-2 px-2 py-1 text-xs font-black bg-amber-300 text-back rounded-full border-2 border-front">
                             YOU
                           </span>
                         )}
                       </p>
 
-                      <p className="text-back uppercase font-semibold text-sm sm:text-base md:text-md lg:text-lg drop-outline tracking-wider">
+                      {isMe && (
+                        <p className="text-back uppercase font-semibold text-xs drop-outline tracking-wider mt-1">
+                          Ref:{" "}
+                          <span className="font-black">
+                            {l.referralCode}
+                          </span>
+                        </p>
+                      )}
+
+                      <p className="text-back uppercase font-semibold text-sm drop-outline tracking-wider">
                         Rank #{i + 1}
                       </p>
                     </div>
                   </div>
 
-                  {/* RIGHT */}
+                 
                   <div className="text-right shrink-0">
                     <p className="text-back uppercase font-semibold text-sm sm:text-base md:text-md lg:text-lg drop-outline tracking-wider">
                       {l.points}
@@ -213,7 +263,7 @@ export default function LeaderboardModal({
           </div>
         )}
 
-        {/* FOOTER */}
+       
         <div className="py-5 text-center relative">
           <div className="absolute top-0 left-6 right-6 h-[2px] bg-gradient-to-r from-transparent via-black/30 to-transparent" />
           <button
