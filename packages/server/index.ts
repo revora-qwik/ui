@@ -73,7 +73,7 @@ serve({
         );
       }
       
-      // fallback safety
+      
       return Response.json(
         { error: "Unable to send OTP" },
         { status: 500, headers: corsHeaders }
