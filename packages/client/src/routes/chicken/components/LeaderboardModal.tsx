@@ -1,4 +1,5 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
+import WaitlistModal from "./waitlistModal";
 
 type Leader = {
   name: string;
@@ -8,6 +9,8 @@ type Leader = {
 
 const SERVER_URL = import.meta.env.VITE_SERVER_URL;
 const STORAGE_KEY = "revora_waitlist_referral";
+
+
 
 const rankStyle = (i: number) => {
   if (i === 0)
@@ -43,59 +46,129 @@ export default function LeaderboardModal({
 }) {
   const [leaders, setLeaders] = useState<Leader[]>([]);
   const [loading, setLoading] = useState(false);
+  const [showWaitlist, setShowWaitlist] = useState(false);
+  const [prefillEmail, setPrefillEmail] = useState("");
+  const [startWithOtp, setStartWithOtp] = useState(false);
+  const [emailInput, setEmailInput] = useState("");
+  const [checking, setChecking] = useState(false);
+  
+  const [myStats, setMyStats] = useState<{
+    rank: number;
+    points: number;
+    referralCode: string;
+    name: string;
+  } | null>(null);
+  
+  const [errorMsg, setErrorMsg] = useState("");
+  
 
-  const rowRefs = useRef<Record<string, HTMLDivElement | null>>({});
-  const hasAutoScrolled = useRef(false);
+  
 
   const myReferralCode =
     typeof window !== "undefined"
       ? localStorage.getItem(STORAGE_KEY)
       : null;
 
-  // Load leaderboard
+  async function handleCheckEmail() {
+  if (!emailInput) return;
+
+  try {
+    setChecking(true);
+
+    const res = await fetch(`${SERVER_URL}/waitlist/email/send-otp`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: emailInput }),
+    });
+
+    const data = await res.json();
+
+    // already joined → just save referral
+    if (data?.alreadyJoined) {
+      localStorage.setItem(STORAGE_KEY, data.referralCode);
+    
+      // refresh leaderboard + compute rank
+      const res2 = await fetch(`${SERVER_URL}/leaderboard`);
+      const list = await res2.json();
+    
+      const index = list.findIndex(
+        (u: any) => u.referralCode === data.referralCode
+      );
+    
+      if (index !== -1) {
+        setMyStats({
+          rank: index + 1,
+          points: list[index].points,
+          referralCode: data.referralCode,
+          name: list[index].name,
+        });
+      }
+    
+      setLeaders(list); // update leaderboard instantly
+      return;
+    }
+    
+
+    // OTP sent → open waitlist directly in OTP screen
+    if (data?.message === "OTP sent") {
+      setPrefillEmail(emailInput);
+      setStartWithOtp(true);
+      setShowWaitlist(true);
+      return;
+    }
+
+    if (!res.ok) throw new Error(data?.error || "Failed");
+  } catch (err: any) {
+    setErrorMsg(err.message || "Something went wrong");
+  } finally {
+    setChecking(false);
+  }
+}
+
+
+
+
+
   useEffect(() => {
     if (!open) return;
 
-    hasAutoScrolled.current = false;
-
+    
     async function load() {
-      try {
-        setLoading(true);
-        const res = await fetch(`${SERVER_URL}/leaderboard`);
-        const data = await res.json();
-        setLeaders(data);
-      } catch (err) {
-        console.error("Failed to load leaderboard", err);
-      } finally {
-        setLoading(false);
+  try {
+    setLoading(true);
+    const res = await fetch(`${SERVER_URL}/leaderboard`);
+    const data = await res.json();
+
+    setLeaders(data);
+
+    // ⭐ ADD THIS BLOCK
+    if (myReferralCode) {
+      const index = data.findIndex(
+        (u: any) => u.referralCode === myReferralCode
+      );
+
+      if (index !== -1) {
+        setMyStats({
+          rank: index + 1,
+          points: data[index].points,
+          referralCode: myReferralCode,
+          name: data[index].name,
+        });
       }
     }
+  } catch (err) {
+    console.error("Failed to load leaderboard", err);
+  } finally {
+    setLoading(false);
+  }
+}
+
 
     load();
   }, [open]);
 
-  // Auto-scroll ONCE after data + DOM ready
-  useEffect(() => {
-    if (
-      !open ||
-      loading ||
-      !myReferralCode ||
-      hasAutoScrolled.current
-    )
-      return;
-
-    const el = rowRefs.current[myReferralCode];
-    if (!el) return;
-
-    
-    const t = setTimeout(() => {
-      el.scrollIntoView({ behavior: "smooth", block: "center" });
-      hasAutoScrolled.current = true;
-    }, 1000);
-
-    return () => clearTimeout(t);
-  }, [open, loading, leaders, myReferralCode]);
-
+  
+  
   if (!open) return null;
 
   return (
@@ -131,7 +204,81 @@ export default function LeaderboardModal({
 
           <div className="absolute bottom-0 left-6 right-6 h-[2px] bg-gradient-to-r from-transparent via-black/30 to-transparent" />
         </div>
+        {myStats ? (
+        <div className="px-6 mt-6">
+    <div
+      className={`
+        flex items-center justify-between
+        rounded-2xl px-6 py-4
+        border-4 border-front
+        ${rankStyle(myStats.rank - 1)}
+        ${myGlow}
+      `}
+    >
+      <div className="flex items-center gap-4 min-w-0">
+        <div
+          className={`
+            w-12 h-12 flex items-center justify-center
+            rounded-full border-4 border-front
+            font-luckiest-guy text-back text-lg
+            drop-outline shadow-[0_3px_0_#2b4c55]
+            ${rankBadgeColor(myStats.rank - 1)}
+          `}
+        >
+          #{myStats.rank}
+        </div>
 
+        <div className="min-w-0">
+          <p className="text-back uppercase font-semibold text-sm drop-outline tracking-wider">
+            {myStats.name}
+            <span className="ml-2 px-2 py-1 text-xs font-black bg-amber-300 text-back rounded-full border-2 border-front">
+              YOU
+            </span>
+          </p>
+
+          <p className="text-back uppercase font-semibold text-xs drop-outline tracking-wider mt-1">
+            Ref: <span className="font-black">{myStats.referralCode}</span>
+          </p>
+        </div>
+      </div>
+
+      <div className="text-right shrink-0">
+        <p className="text-back uppercase font-semibold text-sm drop-outline tracking-wider">
+          {myStats.points}
+        </p>
+        <p className="text-back uppercase font-semibold text-sm drop-outline tracking-wider">
+          Points
+        </p>
+      </div>
+    </div>
+  </div>
+
+        ) : !myReferralCode ? (
+          <div className="flex justify-center mt-6 px-6 animate-jump-in">
+
+   <div className="w-full bg-[#4f7f88]/90 text-back rounded-2xl px-6 py-4 flex items-center gap-3 shadow-md">
+
+    <input
+      type="email"
+      placeholder="Enter email to check rank…"
+      value={emailInput}
+      onChange={(e) => setEmailInput(e.target.value)}
+      className="flex-1 bg-transparent text-sm text-back placeholder:text-back/60 outline-none font-semibold"
+    />
+
+    <button
+      onClick={handleCheckEmail}
+      disabled={checking}
+      className="bg-amber-300 text-back text-xs font-black px-4 py-2 rounded-full border-2 border-front shadow-[0_2px_0_#8a6a1f] hover:bg-amber-400 active:translate-y-[1px] active:shadow-none transition-all"
+    >
+      {checking ? "..." : "CHECK"}
+    </button>
+  </div>
+</div>
+
+        ) : null}
+        
+        
         
         {loading ? (
           <div className="flex-1 flex items-center justify-center">
@@ -165,17 +312,13 @@ export default function LeaderboardModal({
           >
             {leaders.map((l, i) => {
               const egg = eggByRank(i);
-              const isMe =
-                myReferralCode && l.referralCode === myReferralCode;
+              const isMe = false;
+
 
               return (
                 <div
                   key={i}
-                  ref={(el) => {
-                    if (l.referralCode) {
-                      rowRefs.current[l.referralCode] = el;
-                    }
-                  }}
+                  
                   className={`
                     flex items-center justify-between
                     rounded-2xl px-6 py-4
@@ -183,7 +326,7 @@ export default function LeaderboardModal({
                     animate-jump-in
                     hover:scale-[1.01] transition-transform
                     ${rankStyle(i)}
-                    ${isMe ? myGlow : ""}
+                    
                   `}
                 >
                   
@@ -220,11 +363,8 @@ export default function LeaderboardModal({
                     <div className="min-w-0">
                       <p className="text-back uppercase font-semibold text-sm sm:text-base md:text-md lg:text-lg drop-outline tracking-wider">
                         {l.name}
-                        {isMe && (
-                          <span className="ml-2 px-2 py-1 text-xs font-black bg-amber-300 text-back rounded-full border-2 border-front">
-                            YOU
-                          </span>
-                        )}
+                       
+                        
                       </p>
 
                       {isMe && (
@@ -274,6 +414,13 @@ export default function LeaderboardModal({
           </button>
         </div>
       </div>
+      <WaitlistModal
+        open={showWaitlist}
+        onClose={() => setShowWaitlist(false)}
+        prefillEmail={prefillEmail}
+        startWithOtp={startWithOtp}
+      />
+      
     </div>
   );
 }

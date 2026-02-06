@@ -62,15 +62,23 @@ serve({
       if (result?.error) {
         return Response.json(
           { error: result.error },
-          { status: 429, headers: corsHeaders }
+          { status: 400, headers: corsHeaders }
         );
       }
-    
       
+      if (result?.success) {
+        return Response.json(
+          { message: "OTP sent" },
+          { headers: corsHeaders }
+        );
+      }
+      
+      // fallback safety
       return Response.json(
-        { message: "OTP sent" },
-        { headers: corsHeaders }
+        { error: "Unable to send OTP" },
+        { status: 500, headers: corsHeaders }
       );
+      
     }
     
     

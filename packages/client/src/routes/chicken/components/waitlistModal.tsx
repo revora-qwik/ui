@@ -7,9 +7,13 @@ const STORAGE_KEY = "revora_waitlist_referral";
 export default function WaitlistModal({
   open,
   onClose,
+  prefillEmail,
+  startWithOtp,
 }: {
   open: boolean;
   onClose: () => void;
+  prefillEmail?: string;
+  startWithOtp?: boolean;
 }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -38,6 +42,19 @@ export default function WaitlistModal({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
+  
+
+  useEffect(() => {
+  if (!open) return;
+
+  if (prefillEmail) setEmail(prefillEmail);
+
+  
+  if (startWithOtp) {
+    setShowOtpPopup(true);
+    setResendTimer(30);
+  }
+}, [open, prefillEmail, startWithOtp]);
 
   
   useEffect(() => {
@@ -72,6 +89,10 @@ export default function WaitlistModal({
   const handleVerifyEmail = async () => {
     if (!email || !email.includes("@")) {
       alert("Enter a valid email");
+      return;
+    }
+    if (startWithOtp) {
+      setShowOtpPopup(true);
       return;
     }
   
