@@ -8,10 +8,24 @@ import path from "path";
 
 const resend = new Resend(process.env.RESEND_API_KEY!);
 
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+
+const OTP_EXPIRY_MS = 10 * 60 * 1000;
+
+
+const OTP_COOLDOWN_MS = 30 * 1000;
+
 export async function sendWaitlistOtp(email: string) {
   await db();
 
   const cleanEmail = email.toLowerCase().trim();
+
+  
+  if (!EMAIL_REGEX.test(cleanEmail)) {
+    return { error: "Invalid email address" };
+  }
 
   
   const alreadyOnWaitlist = await Waitlist.findOne({ email: cleanEmail });
@@ -23,52 +37,83 @@ export async function sendWaitlistOtp(email: string) {
     };
   }
 
-
-  // ⏱ rate limit
+ 
   const recentOtp = await EmailOtp.findOne({
     email: cleanEmail,
-    createdAt: { $gt: new Date(Date.now() - 30_000) },
+    createdAt: { $gt: new Date(Date.now() - OTP_COOLDOWN_MS) },
   });
 
   if (recentOtp) {
     return { error: "Please wait before requesting another OTP" };
   }
 
+  
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
-  await EmailOtp.deleteMany({ email: cleanEmail });
-  await EmailOtp.create({ email: cleanEmail, otp });
-
+  
   const templatePath = path.join(process.cwd(), "templates", "OTP.html");
   let htmlTemplate = fs.readFileSync(templatePath, "utf8");
   htmlTemplate = htmlTemplate.replace(/{{OTP}}/g, otp);
 
-  await resend.emails.send({
-    from: process.env.OTP_EMAIL!,
-    to: [cleanEmail],
-    subject: `[${otp}] Verify your email`,
-    html: htmlTemplate,
+  
+  try {
+    await resend.emails.send({
+      from: process.env.OTP_EMAIL!,
+      to: [cleanEmail],
+      subject: `[${otp}] Verify your email`,
+      html: htmlTemplate,
+    });
+  } catch (err) {
+    console.error("OTP send failed:", err);
+    return { error: "Failed to send OTP. Try a valid email." };
+  }
+
+  
+  await EmailOtp.deleteMany({ email: cleanEmail });
+
+  
+  await EmailOtp.create({
+    email: cleanEmail,
+    otp,
+    verified: false,
+    createdAt: new Date(),
   });
 
   return { success: true };
 }
-
 
 export async function verifyWaitlistOtp(email: string, otp: string) {
   await db();
 
   const cleanEmail = email.toLowerCase().trim();
 
+ 
+  if (!EMAIL_REGEX.test(cleanEmail)) {
+    throw new Error("Invalid email address");
+  }
+
+  
   const record = await EmailOtp.findOne({
     email: cleanEmail,
     otp,
     verified: false,
   });
 
+  
   if (!record) {
     throw new Error("Invalid or expired OTP");
   }
 
+  
+  const isExpired =
+    Date.now() - new Date(record.createdAt).getTime() > OTP_EXPIRY_MS;
+
+  if (isExpired) {
+    await EmailOtp.deleteMany({ email: cleanEmail });
+    throw new Error("OTP expired. Please request a new one.");
+  }
+
+  
   record.verified = true;
   await record.save();
 
